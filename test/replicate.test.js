@@ -242,13 +242,15 @@ Object.keys(testAPIs).forEach(API => {
       })
     })
 
-    it('emits correct replication info on fresh replication', async () => {
+    it.only('emits correct replication info on fresh replication', async () => {
       return new Promise(async (resolve, reject) => {
         let finished = false
-        const entryCount = 512
+        // If we add more than one entry, replciate.progress won't break (sometimes)
+        let entryCount = 1
 
-        // Trigger replication
-        const adds = []
+        // Add one message to first database
+
+        let adds = []
         for (let i = 0; i < entryCount; i ++) {
           adds.push(i)
         }
@@ -258,17 +260,46 @@ Object.keys(testAPIs).forEach(API => {
           await db1.add('hello ' + i)
         }
 
-        await mapSeries(adds, add)
-        console.log()
+        await mapSeries(adds, add)        
 
-        // Open second instance again
+        // Close first database
+
+        await orbitdb1.stop()
+        
+        // Open second database
+
+          options = {
+            directory: dbPath2,
+            overwrite: true,
+            sync: true,
+          }
+          
+        db2 = await orbitdb2.eventlog(db1.address.toString(), options)
+        
+        db2.add('hello')
+        
+        // Reopen first database
+
         options = {
-          directory: dbPath2,
-          overwrite: true,
+          directory: dbPath1,
+          overwrite: false,
           sync: true,
         }
 
-        db2 = await orbitdb2.eventlog(db1.address.toString(), options)
+        orbitdb1 = await OrbitDB.createInstance(ipfs1, { directory: orbitdbPath1 })
+        db1 = await orbitdb1.eventlog(db1.address.toString(), options)
+
+        // Add new entries to first database
+
+        adds = []
+
+        entryCount = 20
+
+        for (let i = 0; i < entryCount; i ++) {
+          adds.push(i)
+        }
+
+        await mapSeries(adds, add)  
 
         // Test that none of the entries gets into the replication queue twice
         const replicateSet = new Set()
