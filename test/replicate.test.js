@@ -324,7 +324,7 @@ Object.keys(testAPIs).forEach(API => {
           // Once db2 has finished replication, make sure it has all elements
           // and process to the asserts below
           const all = db2.iterator({ limit: -1 }).collect().length
-          finished = (all === entryCount)
+          finished = (all === entryCount + 1)
         })
 
         timer = setInterval(async () => {
@@ -333,9 +333,9 @@ Object.keys(testAPIs).forEach(API => {
 
             try {
               // All entries should be in the database
-              assert.equal(db2.iterator({ limit: -1 }).collect().length, entryCount)
+              assert.equal(db2.iterator({ limit: -1 }).collect().length, entryCount + 1)
               // 'replicated' event should've been received only once
-              assert.equal(replicatedEventCount, 1)
+              assert.equal(replicatedEventCount, 2)
               // progress events should increase monotonically
               assert.equal(progressEvents.length, entryCount)
               for (const [idx, e] of progressEvents.entries()) {
